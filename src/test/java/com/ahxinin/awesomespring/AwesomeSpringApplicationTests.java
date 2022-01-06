@@ -9,5 +9,4 @@ class AwesomeSpringApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
 }

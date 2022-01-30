@@ -1,19 +1,22 @@
 package com.ahxinin.oop;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * @author : hexin
- * @description: api鉴权
- * @date : 2022-01-29
+ * @description: 鉴权接口
+ * @date : 2021-09-25
  */
-public class DefaultApiAuthenticator implements ApiAuthenticator{
+@Service
+public class DefaultApiAuthenticatorImpl implements com.ahxinin.apiauth.ApiAuthenticator {
 
-    @Resource
+    @Autowired
     private CredentialStorage credentialStorage;
 
     @Override
     public void auth(String url) {
+        System.out.println("url:"+url);
         ApiRequest apiRequest = ApiRequest.createFromFullUrl(url);
         auth(apiRequest);
     }
@@ -23,17 +26,16 @@ public class DefaultApiAuthenticator implements ApiAuthenticator{
         String appId = apiRequest.getAppId();
         String token = apiRequest.getToken();
         long timestamp = apiRequest.getTimestamp();
-        String baseUrl = apiRequest.getBaseUrl();
 
         AuthToken clientAuthToken = new AuthToken(token, timestamp);
         if (clientAuthToken.isExpired()){
-            throw new RuntimeException("token is expired");
+            throw new RuntimeException("Token is expired");
         }
 
         String password = credentialStorage.getPasswordByAppId(appId);
-        AuthToken serverAuthToken = AuthToken.create(baseUrl, appId, password, timestamp);
+        AuthToken serverAuthToken = AuthToken.create(appId, password, timestamp);
         if (!serverAuthToken.match(clientAuthToken)){
-            throw new RuntimeException("token verify fail");
+            throw new RuntimeException("Token verification fail");
         }
     }
 }

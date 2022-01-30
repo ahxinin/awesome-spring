@@ -1,57 +1,78 @@
 package com.ahxinin.oop;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.TimeZone;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.DigestUtils;
 
 /**
  * @author : hexin
- * @description: token
- * @date : 2022-01-29
+ * @description: 授权token
+ * @date : 2021-09-25
  */
 public class AuthToken {
 
-    private static final long EXPIRED_TIME_INTERVAL = 1 * 60 * 1000;
+    /**
+     * 默认过期时间
+     */
+    private static final long DEFAULT_EXPIRED_TIME_INTERVAL = 60 * 1000;
 
+    /**
+     * token
+     */
     private String token;
 
-    private long crateTime;
+    /**
+     * 创建时间
+     */
+    private long timestamp;
 
-    private long expiredTimeInterval = EXPIRED_TIME_INTERVAL;
+    /**
+     * 过期时间间隔
+     */
+    private long expiredTimeInterval = DEFAULT_EXPIRED_TIME_INTERVAL;
 
-    public AuthToken(String token, long crateTime){
+    public AuthToken(String token, long timestamp){
         this.token = token;
-        this.crateTime = crateTime;
+        this.timestamp = timestamp;
     }
 
-    public AuthToken(String token, long crateTime, long expiredTimeInterval){
+    private AuthToken(String token, long timestamp, long expiredTimeInterval){
         this.token = token;
-        this.crateTime = crateTime;
+        this.timestamp = timestamp;
         this.expiredTimeInterval = expiredTimeInterval;
     }
 
-    public static AuthToken create(String originalUrl, String appId, String password, long timestamp){
-        String[] urlArray = originalUrl.split("\\?");
-        String params = urlArray[1]+"&"+password;
-        String token = DigestUtils.md5Hex(params);
-
+    /**
+     * 构建token
+     */
+    public static AuthToken create(String appId, String password, long timestamp){
+        String formatText = "appId=%s&timestamp=%s&password=%s";
+        String plainText = String.format(formatText, appId, timestamp, password);
+        System.out.println("plainText:"+plainText);
+        String token = DigestUtils.md5DigestAsHex(plainText.getBytes()).toLowerCase();
+        System.out.println("token:"+token);
         return new AuthToken(token, timestamp);
     }
 
+    /**
+     * 获取token
+     */
     public String getToken(){
         return token;
     }
 
+    /**
+     * 校验请求是否过期
+     */
     public boolean isExpired(){
-        LocalDateTime expiredTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(crateTime),
-                TimeZone.getDefault().toZoneId()).plusMinutes(expiredTimeInterval);
-        return expiredTime.isAfter(LocalDateTime.now());
+        long interval = LocalDateTime.now().getSecond() - timestamp;
+        return interval > expiredTimeInterval;
     }
 
+    /**
+     * 校验token是否匹配
+     */
     public boolean match(AuthToken authToken){
-        return StringUtils.equals(authToken.getToken(), token);
+        return token.equals(authToken.getToken());
     }
-}
 
+}
